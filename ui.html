@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chess Bot</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" integrity="sha512-TU/clvRaSqKB43MX6dvJPEWV8tEGDTbmT4mdxTs6DSYsBY9zKmiw4Qeykp0nS10ndH14HRNG2VWN+IjiMfA17Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    #board {
+      width: 400px;
+      margin: 20px auto;
+    }
+    
+  .highlight {
+    background-color: rgba(255, 255, 0, 0.6) !important;
+  }
+
+  </style>
+</head>
+<body>
+
+  <h2 style="text-align:center;">Chess Bot</h2>
+  <div style="display: flex; justify-content: center; gap: 40px;">
+    <div id="board" style="width: 400px;"></div>
+  
+    <div>
+      <h3>Move History</h3>
+      <ol id="move-history"></ol>
+      <button onclick="undoMove()">Undo Last Move</button>
+    </div>
+  </div>
+  <div id="board"></div>
+
+  <!-- JS Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<script>
+    const game = new Chess();
+    function highlightMove(from, to) {
+    // Remove all highlights first
+    document.querySelectorAll('.square-55d63').forEach(el => {
+      el.classList.remove('highlight');
+    });
+
+    // Highlight the squares
+    const fromSquare = document.querySelector(`.square-${from}`);
+    const toSquare = document.querySelector(`.square-${to}`);
+    if (fromSquare) fromSquare.classList.add('highlight');
+    if (toSquare) toSquare.classList.add('highlight');
+  }
+    const board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+      onDrop: onDrop
+    });
+
+    async function onDrop(source, target) {
+      const move = game.move({ from: source, to: target, promotion: 'q' });
+
+      if (move === null) {
+    // Illegal move: revert the board to the previous state
+    board.position(game.fen());  // revert to current valid position
+    return;
+  }
+
+      board.position(game.fen());
+
+      const res = await fetch('http://localhost:8000/best-move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fen: game.fen() })
+      });
+
+      const data = await res.json();
+
+      if (data.best_move) {
+        // Parse and apply bot move
+        var botMove = data.best_move;
+        const from = botMove.substring(0, 2);
+        const to = botMove.substring(2, 4);
+        game.move({ from, to, promotion: 'q' });
+        highlightMove(from,to)
+        board.position(game.fen());
+      }
+    }
+  </script>
+
+
+</body>
+</html>
