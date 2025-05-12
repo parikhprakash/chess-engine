@@ -20,10 +20,23 @@ STOCKFISH_PATH = "/usr/games/stockfish"  # change this
 # engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
 
 import stockfish
-engine = stockfish.Stockfish(path="/usr/games/stockfish",depth=10)
-engine.set_elo_rating(2550)
+engine = stockfish.Stockfish(path="/usr/games/stockfish",depth=15)
+engine.set_elo_rating(1500)
 class FENRequest(BaseModel):
     fen: str
+
+class EloRequest(BaseModel):
+    elo: int
+
+@app.post("/set-elo")
+async def set_elo(req: EloRequest):
+    try:
+        engine.set_elo_rating(req.elo)
+        return {"status": "Elo Has been updated"}
+    except:
+        return {"status": "Failed to set Elo"}
+
+
 
 @app.post("/best-move")
 async def best_move(req: FENRequest):
